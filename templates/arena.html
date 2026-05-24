@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Arena — Chat Arena{% endblock %}
+
+{% block content %}
+{% if error %}
+  <div class="text-center text-gray-500 mt-20">
+    <div class="text-5xl mb-4">😶</div>
+    <p class="text-lg">{{ error }}</p>
+    <a href="/upload" class="mt-4 inline-block text-indigo-600 hover:underline">Carica la prima persona</a>
+  </div>
+{% else %}
+<div class="text-center mb-8">
+  <p class="text-sm text-gray-400 uppercase tracking-widest mb-1">Sfida</p>
+  <h1 class="text-2xl font-bold text-gray-800">
+    Chi è <span class="text-indigo-600">{{ persona.real_person }}</span>?
+  </h1>
+  <p class="text-sm text-gray-500 mt-1">Seleziona la frase scritta dalla persona vera</p>
+</div>
+
+<form method="post" action="/arena/evaluate">
+  <input type="hidden" name="persona_id" value="{{ persona.id }}" />
+  <input type="hidden" name="ai_phrase_id" value="{{ ai_phrase_id }}" />
+  <input type="hidden" name="real_phrase_id" value="{{ real_phrase_id }}" />
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+    {% for card in cards %}
+    <button type="submit" name="chosen_id" value="{{ card.phrase.id }}"
+            class="card-hover text-left bg-white border-2 border-gray-200 hover:border-indigo-400 rounded-2xl p-6 shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Frase {{ card.label }}</div>
+      <p class="text-gray-700 leading-relaxed text-base">{{ card.phrase.text }}</p>
+    </button>
+    {% endfor %}
+  </div>
+</form>
+
+<div class="text-center text-xs text-gray-400">
+  Persona caricata da <span class="font-medium">{{ persona.uploaded_by }}</span>
+  &mdash;
+  <a href="/leaderboard" class="hover:text-indigo-500">vai alla classifica</a>
+</div>
+{% endif %}
+{% endblock %}

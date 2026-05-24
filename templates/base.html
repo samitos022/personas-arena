@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Chat Arena{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; }
+    .card-hover { transition: transform 0.15s, box-shadow 0.15s; }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- Navbar -->
+  <nav class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+    <a href="/" class="text-xl font-bold text-indigo-600 tracking-tight">Chat Arena 🤖</a>
+    <div class="flex items-center gap-4 text-sm">
+      <a href="/arena" class="text-gray-600 hover:text-indigo-600 font-medium">Arena</a>
+      <a href="/leaderboard" class="text-gray-600 hover:text-indigo-600 font-medium">Classifica</a>
+      <a href="/upload" class="text-gray-600 hover:text-indigo-600 font-medium">Carica Persona</a>
+      {% if nickname %}
+        <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">{{ nickname }}</span>
+        <form method="post" action="/logout" class="inline">
+          <button class="text-gray-400 hover:text-red-500 text-xs">esci</button>
+        </form>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <main class="flex-1 container mx-auto px-4 py-10 max-w-4xl">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="text-center text-xs text-gray-400 py-4">
+    Chat Arena &mdash; progetto universitario
+  </footer>
+</body>
+</html>

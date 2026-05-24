@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Risultato — Chat Arena{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto text-center">
+
+  {% if is_correct %}
+  <div class="text-6xl mb-4">✅</div>
+  <h1 class="text-3xl font-extrabold text-green-600 mb-2">Giusto!</h1>
+  <p class="text-gray-500 mb-8">Hai riconosciuto la frase autentica di <strong>{{ persona.real_person }}</strong>.</p>
+  {% else %}
+  <div class="text-6xl mb-4">❌</div>
+  <h1 class="text-3xl font-extrabold text-red-500 mb-2">Sbagliato!</h1>
+  <p class="text-gray-500 mb-8">Hai scelto la frase dell'AI. La persona <strong>{{ persona.name }}</strong> ti ha ingannato.</p>
+  {% endif %}
+
+  <!-- Reveal -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-10">
+    <div class="rounded-xl p-5 border-2 {{ 'border-green-400 bg-green-50' if chosen_id == real_phrase.id else 'border-gray-200 bg-white' }}">
+      <div class="text-xs font-bold uppercase tracking-widest mb-2
+                  {{ 'text-green-600' if chosen_id == real_phrase.id else 'text-gray-400' }}">
+        ✔ Frase Vera {% if chosen_id == real_phrase.id %}— hai scelto questa{% endif %}
+      </div>
+      <p class="text-gray-700 leading-relaxed text-sm">{{ real_phrase.text }}</p>
+    </div>
+    <div class="rounded-xl p-5 border-2 {{ 'border-red-400 bg-red-50' if chosen_id == ai_phrase.id else 'border-gray-200 bg-white' }}">
+      <div class="text-xs font-bold uppercase tracking-widest mb-2
+                  {{ 'text-red-500' if chosen_id == ai_phrase.id else 'text-gray-400' }}">
+        🤖 Frase AI {% if chosen_id == ai_phrase.id %}— hai scelto questa{% endif %}
+      </div>
+      <p class="text-gray-700 leading-relaxed text-sm">{{ ai_phrase.text }}</p>
+    </div>
+  </div>
+
+  <div class="flex flex-col sm:flex-row gap-3 justify-center">
+    <a href="/arena"
+       class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-8 rounded-xl transition">
+      Prossima sfida ⚔️
+    </a>
+    <a href="/leaderboard"
+       class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-8 rounded-xl transition">
+      Classifica 🏆
+    </a>
+    <a href="/persona/{{ persona.id }}"
+       class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-8 rounded-xl transition">
+      Scheda persona
+    </a>
+  </div>
+</div>
+{% endblock %}

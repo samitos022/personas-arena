@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ persona.name }} — Chat Arena{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+  <a href="/leaderboard" class="text-sm text-indigo-500 hover:underline mb-4 inline-block">← Classifica</a>
+
+  <div class="bg-white rounded-2xl shadow p-8 mb-6">
+    <h1 class="text-2xl font-bold text-gray-800 mb-1">{{ persona.name }}</h1>
+    <p class="text-sm text-gray-500 mb-6">
+      Basata su <strong>{{ persona.real_person }}</strong> &mdash; caricata da <strong>{{ persona.uploaded_by }}</strong>
+    </p>
+
+    <div class="grid grid-cols-3 gap-4 text-center">
+      <div class="bg-gray-50 rounded-xl p-4">
+        <div class="text-2xl font-extrabold text-gray-800">{{ total }}</div>
+        <div class="text-xs text-gray-400 mt-1">Valutazioni</div>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4">
+        <div class="text-2xl font-extrabold text-gray-800">{{ fooled }}</div>
+        <div class="text-xs text-gray-400 mt-1">Utenti ingannati</div>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4">
+        {% if fool_rate is not none %}
+        <div class="text-2xl font-extrabold
+          {% if fool_rate >= 60 %}text-red-500{% elif fool_rate >= 40 %}text-orange-500{% else %}text-green-600{% endif %}">
+          {{ "%.1f"|format(fool_rate) }}%
+        </div>
+        {% else %}
+        <div class="text-2xl font-extrabold text-gray-300">—</div>
+        {% endif %}
+        <div class="text-xs text-gray-400 mt-1">Fool Rate</div>
+      </div>
+    </div>
+
+    {% if total < min_visible %}
+    <p class="text-xs text-gray-400 text-center mt-4">
+      Il fool rate compare in classifica dopo {{ min_visible }} valutazioni.
+    </p>
+    {% endif %}
+  </div>
+
+  <a href="/arena?persona_id={{ persona.id }}"
+     class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">
+    Sfida questa Persona ⚔️
+  </a>
+</div>
+{% endblock %}

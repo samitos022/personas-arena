@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Classifica — Chat Arena{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-800 mb-2">Classifica Personas 🏆</h1>
+<p class="text-sm text-gray-500 mb-8">
+  Il <strong>fool rate</strong> è la percentuale di volte che l'AI ha ingannato i valutatori.
+  Compaiono in classifica le personas con almeno {{ min_evaluations }} valutazioni.
+</p>
+
+{% if user_stats %}
+<div class="bg-indigo-50 border border-indigo-200 rounded-xl px-5 py-4 mb-8 flex flex-wrap gap-6 items-center">
+  <div>
+    <div class="text-xs text-indigo-400 uppercase tracking-wide">Il tuo nickname</div>
+    <div class="font-bold text-indigo-700">{{ nickname }}</div>
+  </div>
+  <div>
+    <div class="text-xs text-indigo-400 uppercase tracking-wide">Valutazioni fatte</div>
+    <div class="font-bold text-indigo-700">{{ user_stats.total }}</div>
+  </div>
+  <div>
+    <div class="text-xs text-indigo-400 uppercase tracking-wide">Corrette</div>
+    <div class="font-bold text-indigo-700">{{ user_stats.correct }}</div>
+  </div>
+  <div>
+    <div class="text-xs text-indigo-400 uppercase tracking-wide">Accuratezza</div>
+    <div class="font-bold text-indigo-700">{{ user_stats.accuracy }}%</div>
+  </div>
+</div>
+{% endif %}
+
+{% if entries %}
+<div class="bg-white rounded-2xl shadow overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="text-left px-5 py-3 text-gray-500 font-semibold">#</th>
+        <th class="text-left px-5 py-3 text-gray-500 font-semibold">Persona</th>
+        <th class="text-left px-5 py-3 text-gray-500 font-semibold">Persona Reale</th>
+        <th class="text-left px-5 py-3 text-gray-500 font-semibold">Caricata da</th>
+        <th class="text-right px-5 py-3 text-gray-500 font-semibold">Valutazioni</th>
+        <th class="text-right px-5 py-3 text-gray-500 font-semibold">Fool Rate</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for entry in entries %}
+      <tr class="hover:bg-gray-50 transition">
+        <td class="px-5 py-4 font-bold text-gray-400">
+          {% if loop.index0 == 0 and entry.fool_rate is not none %}🥇
+          {% elif loop.index0 == 1 and entry.fool_rate is not none %}🥈
+          {% elif loop.index0 == 2 and entry.fool_rate is not none %}🥉
+          {% else %}{{ loop.index }}{% endif %}
+        </td>
+        <td class="px-5 py-4 font-semibold text-gray-800">{{ entry.persona.name }}</td>
+        <td class="px-5 py-4 text-gray-600">{{ entry.persona.real_person }}</td>
+        <td class="px-5 py-4 text-gray-500">{{ entry.persona.uploaded_by }}</td>
+        <td class="px-5 py-4 text-right text-gray-600">{{ entry.total }}</td>
+        <td class="px-5 py-4 text-right font-bold
+          {% if entry.fool_rate is none %}text-gray-400
+          {% elif entry.fool_rate >= 60 %}text-red-500
+          {% elif entry.fool_rate >= 40 %}text-orange-500
+          {% else %}text-green-600{% endif %}">
+          {% if entry.fool_rate is none %}
+            — <span class="text-xs font-normal text-gray-400">(dati insufficienti)</span>
+          {% else %}
+            {{ "%.1f"|format(entry.fool_rate) }}%
+          {% endif %}
+        </td>
+        <td class="px-5 py-4">
+          <a href="/arena?persona_id={{ entry.persona.id }}"
+             class="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1 rounded-full font-medium transition">
+            Sfida
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-gray-400 mt-20">
+  <div class="text-5xl mb-4">📭</div>
+  <p>Nessuna persona ancora. <a href="/upload" class="text-indigo-500 hover:underline">Carica la prima!</a></p>
+</div>
+{% endif %}
+{% endblock %}

@@ -46,6 +46,16 @@
     </div>
   </form>
 
+  <div class="text-center mb-6">
+    <a href="/arena{% if character_id %}?character_id={{ character_id }}{% endif %}"
+       class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+      </svg>
+      Non conosco questo personaggio — Salta
+    </a>
+  </div>
+
 {% elif round.mode == "ai_vs_ai" %}
   <div class="text-center mb-6">
     <span class="inline-block bg-purple-100 text-purple-700 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3">AI vs AI</span>
@@ -77,6 +87,16 @@
       {% endfor %}
     </div>
   </form>
+
+  <div class="text-center mb-6">
+    <a href="/arena{% if character_id %}?character_id={{ character_id }}{% endif %}"
+       class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+      </svg>
+      Non conosco questo personaggio — Salta
+    </a>
+  </div>
 {% endif %}
 
 <div class="text-center text-xs text-gray-400">

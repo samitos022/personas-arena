@@ -108,12 +108,12 @@ def arena_page(request: Request, character_id: int | None = None, db: Session = 
     if round_data is None:
         return templates.TemplateResponse(
             "arena.html",
-            {"request": request, "error": "Hai già valutato tutti i confronti disponibili! Torna più tardi.", "nickname": nickname},
+            {"request": request, "error": "Hai già valutato tutti i confronti disponibili! Torna più tardi.", "nickname": nickname, "character_id": character_id},
         )
 
     return templates.TemplateResponse(
         "arena.html",
-        {"request": request, "round": round_data, "nickname": nickname},
+        {"request": request, "round": round_data, "nickname": nickname, "character_id": character_id},
     )
 
 

@@ -28,11 +28,11 @@ FORMATTING RULES — follow these strictly, they override everything else:
 AVAILABLE_MODELS = [
     "openai/gpt-4o",
     "openai/gpt-4o-mini",
-    "anthropic/claude-3.5-sonnet",
-    "anthropic/claude-3-haiku",
-    "meta-llama/llama-3.1-70b-instruct",
-    "google/gemini-flash-1.5",
-    "mistralai/mistral-7b-instruct",
+    "anthropic/claude-sonnet-4.5",
+    "anthropic/claude-haiku-4.5",
+    "meta-llama/llama-3.3-70b-instruct",
+    "google/gemini-2.5-flash",
+    "mistralai/mistral-small-3.2-24b-instruct",
     "deepseek/deepseek-chat",
 ]
 

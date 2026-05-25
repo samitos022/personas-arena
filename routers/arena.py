@@ -13,7 +13,29 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 
-def _pick_round(db: Session, character_id: int | None = None) -> dict | None:
+def _pick_round(
+    db: Session,
+    character_id: int | None = None,
+    nickname: str | None = None,
+) -> dict | None:
+    # Build sets of comparisons this user has already evaluated
+    seen_avr: set[tuple[int, int]] = set()          # (question_id, phrase_id)
+    seen_ava: set[tuple[int, frozenset]] = set()    # (question_id, frozenset{phrase_id, opponent_id})
+    if nickname:
+        for q_id, p_id in db.query(Evaluation.question_id, Evaluation.phrase_id).filter(
+            Evaluation.evaluator_nickname == nickname,
+            Evaluation.mode == "ai_vs_real",
+        ).all():
+            seen_avr.add((q_id, p_id))
+
+        for q_id, p_id, o_id in db.query(
+            Evaluation.question_id, Evaluation.phrase_id, Evaluation.opponent_id
+        ).filter(
+            Evaluation.evaluator_nickname == nickname,
+            Evaluation.mode == "ai_vs_ai",
+        ).all():
+            seen_ava.add((q_id, frozenset({p_id, o_id})))
+
     query = db.query(Character)
     if character_id:
         query = query.filter(Character.id == character_id)
@@ -30,15 +52,28 @@ def _pick_round(db: Session, character_id: int | None = None) -> dict | None:
 
         for q in approved_qs:
             phrases = q.phrases
+
             if q.real_answer and phrases:
-                avr.append((q, random.choice(phrases)))
+                unseen = [p for p in phrases if (q.id, p.id) not in seen_avr]
+                if unseen:
+                    avr.append((q, random.choice(unseen)))
 
             by_persona: dict[int, list] = {}
             for p in phrases:
                 by_persona.setdefault(p.persona_id, []).append(p)
+
             if len(by_persona) >= 2:
-                two = random.sample(list(by_persona.values()), 2)
-                ava.append((q, random.choice(two[0]), random.choice(two[1])))
+                persona_lists = list(by_persona.values())
+                unseen_pairs: list[tuple] = []
+                for i in range(len(persona_lists)):
+                    for j in range(i + 1, len(persona_lists)):
+                        pa = random.choice(persona_lists[i])
+                        pb = random.choice(persona_lists[j])
+                        if (q.id, frozenset({pa.id, pb.id})) not in seen_ava:
+                            unseen_pairs.append((pa, pb))
+                if unseen_pairs:
+                    pa, pb = random.choice(unseen_pairs)
+                    ava.append((q, pa, pb))
 
         modes = []
         if avr:
@@ -69,11 +104,11 @@ def arena_page(request: Request, character_id: int | None = None, db: Session = 
     if not nickname:
         return RedirectResponse(url="/?next=arena")
 
-    round_data = _pick_round(db, character_id)
+    round_data = _pick_round(db, character_id, nickname)
     if round_data is None:
         return templates.TemplateResponse(
             "arena.html",
-            {"request": request, "error": "Nessuna sfida disponibile.", "nickname": nickname},
+            {"request": request, "error": "Hai già valutato tutti i confronti disponibili! Torna più tardi.", "nickname": nickname},
         )
 
     return templates.TemplateResponse(

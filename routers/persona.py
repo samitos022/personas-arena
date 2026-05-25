@@ -13,6 +13,18 @@ templates = Jinja2Templates(directory="templates")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+META_GUIDELINES = """
+
+---
+FORMATTING RULES — follow these strictly, they override everything else:
+- Write in continuous prose only. No bullet points, no dashes, no numbered lists, no markdown.
+- No asterisks, no bold, no headers, no colons introducing lists, no special symbols.
+- Write exactly as you would speak in a real interview: natural, flowing sentences.
+- Do NOT open with "As [character name]..." or any meta-commentary about the question.
+- Do NOT break character, add disclaimers, or acknowledge being an AI.
+- Target length: approximately {word_count} words — match the length and register of a real spoken answer, not a written essay.
+"""
+
 AVAILABLE_MODELS = [
     "openai/gpt-4o",
     "openai/gpt-4o-mini",
@@ -102,6 +114,8 @@ async def create_persona(
     for question in questions:
         try:
             system_prompt = Template(prompt_template).render(question=question.text)
+            word_count = len(question.real_answer.split()) if question.real_answer else 80
+            system_prompt += META_GUIDELINES.format(word_count=word_count)
             text = await _call_openrouter(api_key, model, system_prompt, question.text)
             db.add(Phrase(persona_id=persona.id, question_id=question.id, text=text))
         except TemplateSyntaxError as e:

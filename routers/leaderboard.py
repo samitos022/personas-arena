@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Evaluation, Persona
+from models import Character, Evaluation, Persona
 
 MIN_EVALUATIONS = 5
 
@@ -18,39 +18,69 @@ def leaderboard(request: Request, db: Session = Depends(get_db)):
 
     entries = []
     for persona in personas:
-        total = db.query(func.count(Evaluation.id)).filter(
-            Evaluation.persona_id == persona.id
-        ).scalar() or 0
-        fooled = db.query(func.count(Evaluation.id)).filter(
+        phrase_ids = [p.id for p in persona.phrases]
+
+        # AI vs Real: fool rate (user picked AI = wrong)
+        avr_total = db.query(func.count(Evaluation.id)).filter(
             Evaluation.persona_id == persona.id,
-            Evaluation.is_correct == False,
+            Evaluation.mode == "ai_vs_real",
         ).scalar() or 0
-        fool_rate = (fooled / total * 100) if total >= MIN_EVALUATIONS else None
+        avr_fooled = db.query(func.count(Evaluation.id)).filter(
+            Evaluation.persona_id == persona.id,
+            Evaluation.mode == "ai_vs_real",
+            Evaluation.picked_ai == True,
+        ).scalar() or 0
+        fool_rate = round(avr_fooled / avr_total * 100, 1) if avr_total >= MIN_EVALUATIONS else None
+
+        # AI vs AI: win rate
+        ava_total = 0
+        ava_wins = 0
+        win_rate = None
+        if phrase_ids:
+            ava_total = db.query(func.count(Evaluation.id)).filter(
+                Evaluation.mode == "ai_vs_ai",
+                or_(
+                    Evaluation.phrase_id.in_(phrase_ids),
+                    Evaluation.opponent_id.in_(phrase_ids),
+                ),
+            ).scalar() or 0
+            ava_wins = db.query(func.count(Evaluation.id)).filter(
+                Evaluation.mode == "ai_vs_ai",
+                Evaluation.winner_id.in_(phrase_ids),
+            ).scalar() or 0
+            win_rate = round(ava_wins / ava_total * 100, 1) if ava_total >= MIN_EVALUATIONS else None
+
         entries.append({
             "persona": persona,
-            "total": total,
-            "fooled": fooled,
+            "avr_total": avr_total,
             "fool_rate": fool_rate,
+            "ava_total": ava_total,
+            "win_rate": win_rate,
         })
 
-    entries.sort(key=lambda e: (e["fool_rate"] is not None, e["fool_rate"] or 0), reverse=True)
+    entries.sort(
+        key=lambda e: (
+            e["fool_rate"] is not None or e["win_rate"] is not None,
+            (e["fool_rate"] or 0) + (e["win_rate"] or 0),
+        ),
+        reverse=True,
+    )
 
     nickname = request.cookies.get("nickname")
     user_stats = None
     if nickname:
-        user_total = db.query(func.count(Evaluation.id)).filter(
+        u_total = db.query(func.count(Evaluation.id)).filter(
             Evaluation.evaluator_nickname == nickname
         ).scalar() or 0
-        user_correct = db.query(func.count(Evaluation.id)).filter(
+        u_correct = db.query(func.count(Evaluation.id)).filter(
             Evaluation.evaluator_nickname == nickname,
-            Evaluation.is_correct == True,
+            Evaluation.mode == "ai_vs_real",
+            Evaluation.picked_ai == False,
         ).scalar() or 0
-        if user_total:
-            user_stats = {
-                "total": user_total,
-                "correct": user_correct,
-                "accuracy": round(user_correct / user_total * 100, 1),
-            }
+        if u_total:
+            user_stats = {"total": u_total, "correct": u_correct}
+
+    characters = db.query(Character).order_by(Character.name).all()
 
     return templates.TemplateResponse(
         "leaderboard.html",
@@ -60,5 +90,6 @@ def leaderboard(request: Request, db: Session = Depends(get_db)):
             "min_evaluations": MIN_EVALUATIONS,
             "nickname": nickname,
             "user_stats": user_stats,
+            "characters": characters,
         },
     )

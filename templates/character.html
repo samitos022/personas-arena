@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{{ character.name }} — Chat Arena{% endblock %}
+
+{% block content %}
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <p class="text-sm text-gray-400 uppercase tracking-widest mb-1">Character</p>
+    <h1 class="text-3xl font-extrabold text-gray-800">{{ character.name }}</h1>
+    <p class="text-xs text-gray-400 mt-1">created by {{ character.created_by }}</p>
+  </div>
+  <a href="/create?character_id={{ character.id }}"
+     class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition text-sm">
+    + New Persona
+  </a>
+</div>
+
+<!-- Personas -->
+<section class="mb-10">
+  <h2 class="text-lg font-bold text-gray-700 mb-3">Personas ({{ character.personas | length }})</h2>
+  {% if character.personas %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100">
+    {% for p in character.personas %}
+    <a href="/persona/{{ p.id }}"
+       class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition block">
+      <div>
+        <span class="font-semibold text-gray-800">{{ p.name }}</span>
+        <span class="ml-3 text-xs text-gray-400">{{ p.phrases | length }} responses</span>
+      </div>
+      <span class="text-xs text-indigo-500 font-medium">{{ p.model }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-400">No personas yet. <a href="/create?character_id={{ character.id }}" class="text-indigo-500 hover:underline">Create one.</a></p>
+  {% endif %}
+</section>
+
+<!-- Approved Questions -->
+<section class="mb-8">
+  <h2 class="text-lg font-bold text-gray-700 mb-3">
+    Questions ({{ approved_questions | length }})
+  </h2>
+  {% if approved_questions %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100">
+    {% for q in approved_questions %}
+    <div class="px-5 py-4">
+      <p class="text-gray-700 text-sm font-medium mb-1">{{ q.text }}</p>
+      {% if q.real_answer %}
+      <details class="text-xs text-gray-500 mt-1">
+        <summary class="cursor-pointer text-green-600 font-medium">Real answer</summary>
+        <p class="mt-1 text-gray-600 leading-relaxed">{{ q.real_answer }}</p>
+      </details>
+      {% else %}
+      <span class="text-xs text-gray-400">No real answer — AI vs AI only</span>
+      {% endif %}
+      <div class="flex gap-2 mt-2">
+        {% if nickname %}
+        <form method="post" action="/questions/{{ q.id }}/delete" class="inline">
+          <button class="text-xs text-red-400 hover:text-red-600">delete</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-400">No approved questions yet.</p>
+  {% endif %}
+</section>
+
+<!-- Pending Questions -->
+{% if pending_questions %}
+<section class="mb-8">
+  <h2 class="text-lg font-bold text-gray-700 mb-3">
+    Pending review ({{ pending_questions | length }})
+  </h2>
+  <div class="bg-yellow-50 rounded-xl border border-yellow-200 divide-y divide-yellow-100">
+    {% for q in pending_questions %}
+    <div class="px-5 py-4">
+      <p class="text-gray-700 text-sm font-medium mb-2">{{ q.text }}</p>
+      {% if q.real_answer %}
+      <details class="text-xs text-gray-500 mb-2">
+        <summary class="cursor-pointer text-green-600 font-medium">Real answer</summary>
+        <p class="mt-1 text-gray-600 leading-relaxed">{{ q.real_answer }}</p>
+      </details>
+      {% endif %}
+      <p class="text-xs text-gray-400 mb-2">Added by {{ q.added_by }}</p>
+      {% if nickname %}
+      <div class="flex gap-3">
+        <form method="post" action="/questions/{{ q.id }}/approve">
+          <button class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg">Approve</button>
+        </form>
+        <form method="post" action="/questions/{{ q.id }}/delete">
+          <button class="text-xs text-red-400 hover:text-red-600">Delete</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Add Question Form -->
+{% if nickname %}
+<section>
+  <h2 class="text-lg font-bold text-gray-700 mb-3">Add a Question</h2>
+  <form method="post" action="/questions/add"
+        class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col gap-4">
+    <input type="hidden" name="character_id" value="{{ character.id }}" />
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Question</label>
+      <input type="text" name="text" required maxlength="500"
+             placeholder="e.g. What do you think about immigration policy?"
+             class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Real answer <span class="text-gray-400 font-normal">(optional — enables AI vs Real mode)</span>
+      </label>
+      <textarea name="real_answer" rows="4"
+                placeholder="Paste a real quote from {{ character.name }} on this topic..."
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
+    </div>
+    <button type="submit"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg transition">
+      Submit for review
+    </button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

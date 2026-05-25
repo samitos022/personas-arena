@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Create Persona — Chat Arena{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-800 mb-1">Create a Persona</h1>
+  <p class="text-sm text-gray-500 mb-6">
+    Write a Jinja2 system prompt. Use <code class="bg-gray-100 px-1 rounded">{{ '{{' }} question {{ '}}' }}</code>
+    if you want to embed the question inside the prompt — otherwise it's sent as the user message.
+  </p>
+
+  {% if error %}
+  <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-6 text-sm">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/create" class="bg-white rounded-2xl shadow p-8 flex flex-col gap-5">
+
+    <!-- Character -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Character</label>
+      <div class="flex gap-2">
+        <select name="character_id" required
+                class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <option value="">— select or create below —</option>
+          {% for char in characters %}
+          <option value="{{ char.id }}"
+            {% if selected_character and selected_character.id == char.id %}selected{% endif %}>
+            {{ char.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <p class="text-xs text-gray-400 mt-1">
+        Don't see the character?
+        <a href="/characters" class="text-indigo-500 hover:underline">Create it first</a>.
+      </p>
+    </div>
+
+    <!-- Model -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Model (OpenRouter)</label>
+      <select name="model" required
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        {% for m in models %}
+        <option value="{{ m }}">{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Prompt template -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">System Prompt (Jinja2)</label>
+      <textarea name="prompt_template" required rows="10"
+                placeholder="You are Donald Trump. Respond exactly as he would — short sentences, superlatives, first person. Stay completely in character."
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
+    </div>
+
+    <!-- API key -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        OpenRouter API Key
+        {% if api_key_set %}
+          <span class="text-green-600 text-xs font-normal ml-1">(saved in session)</span>
+        {% endif %}
+      </label>
+      <input type="text" name="openrouter_key"
+             placeholder="{% if api_key_set %}leave blank to use saved key{% else %}sk-or-...{% endif %}"
+             class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      <p class="text-xs text-gray-400 mt-1">
+        Used to call OpenRouter. Stored only in your browser cookie.
+      </p>
+    </div>
+
+    <button type="submit"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg transition mt-2">
+      Create &amp; Generate Responses
+    </button>
+  </form>
+</div>
+{% endblock %}

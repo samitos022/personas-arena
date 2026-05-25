@@ -1,12 +1,11 @@
 import random
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Evaluation, Persona, Phrase
+from models import Character, Evaluation, Phrase, Question
 
 MIN_EVALUATIONS_VISIBLE = 5
 
@@ -14,123 +13,142 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 
-def _pick_round(db: Session, persona_id: int | None = None):
-    """Return (persona, ai_phrase, real_phrase) or None if no valid persona exists."""
-    query = db.query(Persona).join(Phrase).filter(Phrase.type == "ai")
+def _pick_round(db: Session, character_id: int | None = None) -> dict | None:
+    query = db.query(Character)
+    if character_id:
+        query = query.filter(Character.id == character_id)
 
-    if persona_id:
-        query = query.filter(Persona.id == persona_id)
+    characters = query.all()
+    random.shuffle(characters)
 
-    personas = query.all()
-    random.shuffle(personas)
+    for char in characters:
+        approved_qs = [q for q in char.questions if q.approved]
+        random.shuffle(approved_qs)
 
-    for persona in personas:
-        ai_phrases = [p for p in persona.phrases if p.type == "ai"]
-        real_phrases = [p for p in persona.phrases if p.type == "real"]
-        if ai_phrases and real_phrases:
-            return persona, random.choice(ai_phrases), random.choice(real_phrases)
+        avr: list[tuple] = []   # (question, phrase)
+        ava: list[tuple] = []   # (question, phrase_a, phrase_b)
+
+        for q in approved_qs:
+            phrases = q.phrases
+            if q.real_answer and phrases:
+                avr.append((q, random.choice(phrases)))
+
+            by_persona: dict[int, list] = {}
+            for p in phrases:
+                by_persona.setdefault(p.persona_id, []).append(p)
+            if len(by_persona) >= 2:
+                two = random.sample(list(by_persona.values()), 2)
+                ava.append((q, random.choice(two[0]), random.choice(two[1])))
+
+        modes = []
+        if avr:
+            modes.append("ai_vs_real")
+        if ava:
+            modes.append("ai_vs_ai")
+
+        if not modes:
+            continue
+
+        mode = random.choice(modes)
+
+        if mode == "ai_vs_real":
+            q, phrase = random.choice(avr)
+            return {"mode": "ai_vs_real", "character": char, "question": q, "phrase": phrase}
+        else:
+            q, pa, pb = random.choice(ava)
+            if random.random() < 0.5:
+                pa, pb = pb, pa
+            return {"mode": "ai_vs_ai", "character": char, "question": q, "phrase_a": pa, "phrase_b": pb}
 
     return None
 
 
 @router.get("/arena")
-def arena_page(request: Request, persona_id: int | None = None, db: Session = Depends(get_db)):
+def arena_page(request: Request, character_id: int | None = None, db: Session = Depends(get_db)):
     nickname = request.cookies.get("nickname")
     if not nickname:
         return RedirectResponse(url="/?next=arena")
 
-    result = _pick_round(db, persona_id)
-    if result is None:
+    round_data = _pick_round(db, character_id)
+    if round_data is None:
         return templates.TemplateResponse(
             "arena.html",
-            {"request": request, "error": "Nessuna persona disponibile.", "nickname": nickname},
+            {"request": request, "error": "Nessuna sfida disponibile.", "nickname": nickname},
         )
-
-    persona, ai_phrase, real_phrase = result
-    # Shuffle so user doesn't know which side is AI
-    cards = [
-        {"phrase": ai_phrase, "label": "A"},
-        {"phrase": real_phrase, "label": "B"},
-    ]
-    random.shuffle(cards)
 
     return templates.TemplateResponse(
         "arena.html",
-        {
-            "request": request,
-            "persona": persona,
-            "cards": cards,
-            "ai_phrase_id": ai_phrase.id,
-            "real_phrase_id": real_phrase.id,
-            "nickname": nickname,
-        },
+        {"request": request, "round": round_data, "nickname": nickname},
     )
 
 
 @router.post("/arena/evaluate")
-def evaluate(
-    request: Request,
-    persona_id: int = Form(...),
-    ai_phrase_id: int = Form(...),
-    real_phrase_id: int = Form(...),
-    chosen_id: int = Form(...),
-    db: Session = Depends(get_db),
-):
+async def evaluate(request: Request, db: Session = Depends(get_db)):
     nickname = request.cookies.get("nickname")
     if not nickname:
         return RedirectResponse(url="/")
 
-    is_correct = chosen_id == real_phrase_id
+    form = await request.form()
+    mode = form.get("mode")
+    question_id = int(form.get("question_id"))
+    question = db.get(Question, question_id)
 
-    ev = Evaluation(
-        evaluator_nickname=nickname,
-        persona_id=persona_id,
-        ai_phrase_id=ai_phrase_id,
-        real_phrase_id=real_phrase_id,
-        chosen_id=chosen_id,
-        is_correct=is_correct,
-    )
-    db.add(ev)
-    db.commit()
+    if mode == "ai_vs_real":
+        phrase_id = int(form.get("phrase_id"))
+        picked_ai = form.get("chosen") == "ai"
+        phrase = db.get(Phrase, phrase_id)
 
-    ai_phrase = db.get(Phrase, ai_phrase_id)
-    real_phrase = db.get(Phrase, real_phrase_id)
-    persona = db.get(Persona, persona_id)
+        db.add(Evaluation(
+            evaluator_nickname=nickname,
+            mode="ai_vs_real",
+            persona_id=phrase.persona_id,
+            question_id=question_id,
+            phrase_id=phrase_id,
+            picked_ai=picked_ai,
+        ))
+        db.commit()
 
-    return templates.TemplateResponse(
-        "result.html",
-        {
-            "request": request,
-            "is_correct": is_correct,
-            "ai_phrase": ai_phrase,
-            "real_phrase": real_phrase,
-            "persona": persona,
-            "chosen_id": chosen_id,
-            "nickname": nickname,
-        },
-    )
+        return templates.TemplateResponse(
+            "result.html",
+            {
+                "request": request,
+                "mode": "ai_vs_real",
+                "picked_ai": picked_ai,
+                "phrase": phrase,
+                "question": question,
+                "nickname": nickname,
+            },
+        )
 
+    else:  # ai_vs_ai
+        phrase_a_id = int(form.get("phrase_a_id"))
+        phrase_b_id = int(form.get("phrase_b_id"))
+        winner_id = int(form.get("chosen"))
 
-@router.get("/persona/{persona_id}")
-def persona_detail(request: Request, persona_id: int, db: Session = Depends(get_db)):
-    persona = db.get(Persona, persona_id)
-    if persona is None:
-        return RedirectResponse(url="/leaderboard")
+        phrase_a = db.get(Phrase, phrase_a_id)
+        phrase_b = db.get(Phrase, phrase_b_id)
+        winner = db.get(Phrase, winner_id)
+        loser = phrase_b if winner_id == phrase_a_id else phrase_a
 
-    total = db.query(func.count(Evaluation.id)).filter(Evaluation.persona_id == persona_id).scalar()
-    fooled = db.query(func.count(Evaluation.id)).filter(
-        Evaluation.persona_id == persona_id, Evaluation.is_correct == False
-    ).scalar()
-    fool_rate = (fooled / total * 100) if total else None
+        db.add(Evaluation(
+            evaluator_nickname=nickname,
+            mode="ai_vs_ai",
+            persona_id=phrase_a.persona_id,
+            question_id=question_id,
+            phrase_id=phrase_a_id,
+            opponent_id=phrase_b_id,
+            winner_id=winner_id,
+        ))
+        db.commit()
 
-    return templates.TemplateResponse(
-        "persona.html",
-        {
-            "request": request,
-            "persona": persona,
-            "total": total,
-            "fooled": fooled,
-            "fool_rate": fool_rate,
-            "min_visible": MIN_EVALUATIONS_VISIBLE,
-        },
-    )
+        return templates.TemplateResponse(
+            "result.html",
+            {
+                "request": request,
+                "mode": "ai_vs_ai",
+                "winner": winner,
+                "loser": loser,
+                "question": question,
+                "nickname": nickname,
+            },
+        )

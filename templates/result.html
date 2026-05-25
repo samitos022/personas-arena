@@ -1,49 +1,76 @@
 {% extends "base.html" %}
-{% block title %}Risultato — Chat Arena{% endblock %}
+{% block title %}Result — Chat Arena{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto text-center">
 
-  {% if is_correct %}
-  <div class="text-6xl mb-4">✅</div>
-  <h1 class="text-3xl font-extrabold text-green-600 mb-2">Giusto!</h1>
-  <p class="text-gray-500 mb-8">Hai riconosciuto la frase autentica di <strong>{{ persona.real_person }}</strong>.</p>
+{% if mode == "ai_vs_real" %}
+  {% if not picked_ai %}
+    <div class="text-6xl mb-4">✅</div>
+    <h1 class="text-3xl font-extrabold text-green-600 mb-2">Correct!</h1>
+    <p class="text-gray-500 mb-6">You identified the real answer from <strong>{{ phrase.persona.character.name }}</strong>.</p>
   {% else %}
-  <div class="text-6xl mb-4">❌</div>
-  <h1 class="text-3xl font-extrabold text-red-500 mb-2">Sbagliato!</h1>
-  <p class="text-gray-500 mb-8">Hai scelto la frase dell'AI. La persona <strong>{{ persona.name }}</strong> ti ha ingannato.</p>
+    <div class="text-6xl mb-4">❌</div>
+    <h1 class="text-3xl font-extrabold text-red-500 mb-2">Fooled!</h1>
+    <p class="text-gray-500 mb-6">You chose the AI. Persona <strong>{{ phrase.persona.name }}</strong> got you.</p>
   {% endif %}
 
-  <!-- Reveal -->
+  <div class="bg-gray-50 border border-gray-200 rounded-xl px-5 py-3 mb-6 text-left max-w-xl mx-auto">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Question</p>
+    <p class="text-gray-600 text-sm">{{ question.text }}</p>
+  </div>
+
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-10">
-    <div class="rounded-xl p-5 border-2 {{ 'border-green-400 bg-green-50' if chosen_id == real_phrase.id else 'border-gray-200 bg-white' }}">
-      <div class="text-xs font-bold uppercase tracking-widest mb-2
-                  {{ 'text-green-600' if chosen_id == real_phrase.id else 'text-gray-400' }}">
-        ✔ Frase Vera {% if chosen_id == real_phrase.id %}— hai scelto questa{% endif %}
-      </div>
-      <p class="text-gray-700 leading-relaxed text-sm">{{ real_phrase.text }}</p>
+    <div class="rounded-xl p-5 border-2 border-green-400 bg-green-50">
+      <div class="text-xs font-bold uppercase tracking-widest text-green-600 mb-2">✔ Real answer</div>
+      <p class="text-gray-700 leading-relaxed text-sm">{{ question.real_answer }}</p>
     </div>
-    <div class="rounded-xl p-5 border-2 {{ 'border-red-400 bg-red-50' if chosen_id == ai_phrase.id else 'border-gray-200 bg-white' }}">
+    <div class="rounded-xl p-5 border-2 {{ 'border-red-400 bg-red-50' if picked_ai else 'border-gray-200 bg-white' }}">
       <div class="text-xs font-bold uppercase tracking-widest mb-2
-                  {{ 'text-red-500' if chosen_id == ai_phrase.id else 'text-gray-400' }}">
-        🤖 Frase AI {% if chosen_id == ai_phrase.id %}— hai scelto questa{% endif %}
+                  {{ 'text-red-500' if picked_ai else 'text-gray-400' }}">
+        🤖 AI answer &mdash; {{ phrase.persona.name }}
+        {% if picked_ai %} — you chose this{% endif %}
       </div>
-      <p class="text-gray-700 leading-relaxed text-sm">{{ ai_phrase.text }}</p>
+      <p class="text-gray-700 leading-relaxed text-sm">{{ phrase.text }}</p>
     </div>
   </div>
+
+{% elif mode == "ai_vs_ai" %}
+  <div class="text-6xl mb-4">⚔️</div>
+  <h1 class="text-3xl font-extrabold text-purple-600 mb-2">Your pick</h1>
+  <p class="text-gray-500 mb-6">
+    You found <strong>{{ winner.persona.name }}</strong> more convincing as <strong>{{ winner.persona.character.name }}</strong>.
+  </p>
+
+  <div class="bg-gray-50 border border-gray-200 rounded-xl px-5 py-3 mb-6 text-left max-w-xl mx-auto">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Question</p>
+    <p class="text-gray-600 text-sm">{{ question.text }}</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-10">
+    <div class="rounded-xl p-5 border-2 border-purple-400 bg-purple-50">
+      <div class="text-xs font-bold uppercase tracking-widest text-purple-600 mb-2">
+        👑 Winner &mdash; {{ winner.persona.name }}
+      </div>
+      <p class="text-gray-700 leading-relaxed text-sm">{{ winner.text }}</p>
+    </div>
+    <div class="rounded-xl p-5 border-2 border-gray-200 bg-white">
+      <div class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">
+        {{ loser.persona.name }}
+      </div>
+      <p class="text-gray-700 leading-relaxed text-sm">{{ loser.text }}</p>
+    </div>
+  </div>
+{% endif %}
 
   <div class="flex flex-col sm:flex-row gap-3 justify-center">
     <a href="/arena"
        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-8 rounded-xl transition">
-      Prossima sfida ⚔️
+      Next battle ⚔️
     </a>
     <a href="/leaderboard"
        class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-8 rounded-xl transition">
-      Classifica 🏆
-    </a>
-    <a href="/persona/{{ persona.id }}"
-       class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-8 rounded-xl transition">
-      Scheda persona
+      Leaderboard 🏆
     </a>
   </div>
 </div>

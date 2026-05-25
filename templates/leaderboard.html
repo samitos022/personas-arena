@@ -25,8 +25,10 @@
 </div>
 {% endif %}
 
+{# ── Persona leaderboard ── #}
+<h2 class="text-lg font-bold text-gray-700 mb-3">Persona Ranking</h2>
 {% if entries %}
-<div class="bg-white rounded-2xl shadow overflow-x-auto">
+<div class="bg-white rounded-2xl shadow overflow-x-auto mb-10">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
@@ -84,9 +86,120 @@
   </table>
 </div>
 {% else %}
-<div class="text-center text-gray-400 mt-20">
-  <div class="text-5xl mb-4">📭</div>
+<div class="text-center text-gray-400 mt-8 mb-10">
+  <div class="text-4xl mb-2">📭</div>
   <p>No personas yet. <a href="/create" class="text-indigo-500 hover:underline">Create the first one!</a></p>
 </div>
 {% endif %}
+
+{# ── Model leaderboard ── #}
+<h2 class="text-lg font-bold text-gray-700 mb-1">Model Ranking 🤖</h2>
+<p class="text-sm text-gray-500 mb-3">Aggregated stats across all personas using the same model.</p>
+{% if model_entries %}
+<div class="bg-white rounded-2xl shadow overflow-x-auto mb-10">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="text-left px-4 py-3 text-gray-500 font-semibold">#</th>
+        <th class="text-left px-4 py-3 text-gray-500 font-semibold">Model</th>
+        <th class="text-right px-4 py-3 text-gray-500 font-semibold">Personas</th>
+        <th class="text-right px-4 py-3 text-gray-500 font-semibold">Fool Rate</th>
+        <th class="text-right px-4 py-3 text-gray-500 font-semibold">Win Rate</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for entry in model_entries %}
+      <tr class="hover:bg-gray-50 transition">
+        <td class="px-4 py-4 font-bold text-gray-400">
+          {% if loop.index0 == 0 %}🥇
+          {% elif loop.index0 == 1 %}🥈
+          {% elif loop.index0 == 2 %}🥉
+          {% else %}{{ loop.index }}{% endif %}
+        </td>
+        <td class="px-4 py-4 font-mono text-sm font-semibold text-gray-800">{{ entry.model_short }}
+          <div class="text-xs font-normal font-sans text-gray-400">{{ entry.model }}</div>
+        </td>
+        <td class="px-4 py-4 text-right text-gray-600">{{ entry.persona_count }}</td>
+        <td class="px-4 py-4 text-right font-bold
+          {% if entry.fool_rate is none %}text-gray-300
+          {% elif entry.fool_rate >= 60 %}text-red-500
+          {% elif entry.fool_rate >= 40 %}text-orange-500
+          {% else %}text-green-600{% endif %}">
+          {% if entry.fool_rate is none %}—{% else %}{{ entry.fool_rate }}%{% endif %}
+          <div class="text-xs font-normal text-gray-400">{{ entry.avr_total }} evals</div>
+        </td>
+        <td class="px-4 py-4 text-right font-bold
+          {% if entry.win_rate is none %}text-gray-300
+          {% elif entry.win_rate >= 60 %}text-purple-600
+          {% else %}text-gray-500{% endif %}">
+          {% if entry.win_rate is none %}—{% else %}{{ entry.win_rate }}%{% endif %}
+          <div class="text-xs font-normal text-gray-400">{{ entry.ava_total }} evals</div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-gray-400 mb-10">
+  <p class="text-sm">No model data yet.</p>
+</div>
+{% endif %}
+
+{# ── Evaluator leaderboard ── #}
+<h2 class="text-lg font-bold text-gray-700 mb-1">Top Evaluators 🧠</h2>
+<p class="text-sm text-gray-500 mb-3">
+  Ranked by accuracy in <strong>AI vs Real</strong> — how often they correctly spotted the AI.
+  Requires ≥ {{ min_evaluations }} AI vs Real evaluations to rank.
+</p>
+{% if evaluator_entries %}
+<div class="bg-white rounded-2xl shadow overflow-x-auto mb-10">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="text-left px-4 py-3 text-gray-500 font-semibold">#</th>
+        <th class="text-left px-4 py-3 text-gray-500 font-semibold">Nickname</th>
+        <th class="text-right px-4 py-3 text-gray-500 font-semibold">Total Evals</th>
+        <th class="text-right px-4 py-3 text-gray-500 font-semibold">AI vs Real</th>
+        <th class="text-right px-4 py-3 text-gray-500 font-semibold">Correct</th>
+        <th class="text-right px-4 py-3 text-gray-500 font-semibold">Accuracy</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for ev in evaluator_entries %}
+      <tr class="hover:bg-gray-50 transition
+        {% if ev.nickname == nickname %}bg-indigo-50{% endif %}">
+        <td class="px-4 py-4 font-bold text-gray-400">
+          {% if ev.accuracy is not none %}
+            {% if loop.index0 == 0 %}🥇
+            {% elif loop.index0 == 1 %}🥈
+            {% elif loop.index0 == 2 %}🥉
+            {% else %}{{ loop.index }}{% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td class="px-4 py-4 font-semibold text-gray-800">
+          {{ ev.nickname }}
+          {% if ev.nickname == nickname %}<span class="ml-1 text-xs text-indigo-400">(you)</span>{% endif %}
+        </td>
+        <td class="px-4 py-4 text-right text-gray-600">{{ ev.total }}</td>
+        <td class="px-4 py-4 text-right text-gray-600">{{ ev.avr_count }}</td>
+        <td class="px-4 py-4 text-right text-gray-600">{{ ev.correct }}</td>
+        <td class="px-4 py-4 text-right font-bold
+          {% if ev.accuracy is none %}text-gray-300
+          {% elif ev.accuracy >= 70 %}text-emerald-600
+          {% elif ev.accuracy >= 50 %}text-orange-500
+          {% else %}text-red-400{% endif %}">
+          {% if ev.accuracy is none %}—{% else %}{{ ev.accuracy }}%{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-gray-400 mb-10">
+  <p class="text-sm">No evaluations yet. <a href="/arena" class="text-indigo-500 hover:underline">Start evaluating!</a></p>
+</div>
+{% endif %}
+
 {% endblock %}

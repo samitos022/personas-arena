@@ -71,10 +71,46 @@
       </p>
     </div>
 
-    <button type="submit"
+    <button id="submit-btn" type="submit"
             class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg transition mt-2">
       Create &amp; Generate Responses
     </button>
   </form>
 </div>
+
+<!-- Loading overlay -->
+<div id="loading-overlay"
+     class="hidden fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-4 max-w-sm text-center">
+    <!-- Spinner -->
+    <svg class="animate-spin h-10 w-10 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+    </svg>
+    <p class="text-lg font-bold text-gray-800">Generating responses…</p>
+    <p class="text-sm text-gray-500" id="loading-sub">Calling the model for each question. This may take up to a minute.</p>
+    <!-- Animated dots -->
+    <div class="flex gap-1.5 mt-1">
+      <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay:0s"></span>
+      <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay:.15s"></span>
+      <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay:.3s"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const btn = document.getElementById('submit-btn');
+    const overlay = document.getElementById('loading-overlay');
+    const sub = document.getElementById('loading-sub');
+
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    overlay.classList.remove('hidden');
+
+    // Update sub-message after a few seconds to reassure the user
+    setTimeout(() => { sub.textContent = 'Still working — the model is answering each question one by one…'; }, 8000);
+    setTimeout(() => { sub.textContent = 'Almost there. Wrapping up the last responses…'; }, 25000);
+  });
+</script>
 {% endblock %}

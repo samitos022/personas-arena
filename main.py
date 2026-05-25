@@ -1,15 +1,60 @@
-from fastapi import FastAPI, Request, Response
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from database import engine
-from models import Base
+from database import engine, SessionLocal
+from models import Base, Character, Question
 from routers import arena, characters, leaderboard, persona, questions
+from seed_data import CHARACTERS, QUESTIONS
 
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger("arena")
 
-app = FastAPI(title="Chat Arena")
+
+def _seed(db):
+    """Populate characters and questions if the DB is empty."""
+    if db.query(Character).count() > 0:
+        return
+
+    logger.info("Empty DB detected — running seed data.")
+    char_map: dict[str, Character] = {}
+    for c in CHARACTERS:
+        char = Character(name=c["name"], slug=c["slug"], created_by="system")
+        db.add(char)
+        db.flush()
+        char_map[c["slug"]] = char
+
+    for slug, text, real_answer in QUESTIONS:
+        db.add(Question(
+            character_id=char_map[slug].id,
+            text=text,
+            real_answer=real_answer,
+            added_by="system",
+            approved=True,
+        ))
+
+    db.commit()
+    logger.info("Seed complete: %d characters, %d questions.", len(char_map), len(QUESTIONS))
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            _seed(db)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("Startup DB init failed — app will still start.")
+    yield
+
+
+app = FastAPI(title="Chat Arena", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 

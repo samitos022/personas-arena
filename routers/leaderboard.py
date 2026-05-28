@@ -56,6 +56,13 @@ def _sort_key(e: dict) -> tuple:
     )
 
 
+def _persona_sort_key(e: dict) -> tuple:
+    return (
+        e["fool_rate"] is not None,
+        e["fool_rate"] or 0,
+    )
+
+
 @router.get("/leaderboard")
 def leaderboard(request: Request, db: Session = Depends(get_db)):
     personas = db.query(Persona).all()
@@ -66,7 +73,7 @@ def leaderboard(request: Request, db: Session = Depends(get_db)):
         phrase_ids = [p.id for p in persona.phrases]
         stats = _persona_stats(db, [persona.id], phrase_ids)
         entries.append({"persona": persona, **stats})
-    entries.sort(key=_sort_key, reverse=True)
+    entries.sort(key=_persona_sort_key, reverse=True)
 
     # --- Model leaderboard ---
     model_map: dict[str, list[Persona]] = {}

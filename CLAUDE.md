@@ -1,1 +1,0 @@
-Ci osno diversi claude code che operano sul codice se vedi degli errori nella buil d è probibabile che un altro agente ci stia lavorando, quindi prova a ribuildare dopo 30 secondi
